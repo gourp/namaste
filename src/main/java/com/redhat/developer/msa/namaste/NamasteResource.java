@@ -46,7 +46,7 @@ public class NamasteResource {
 	@Produces("text/plain")
 	public String namaste() {
 		String hostname = System.getenv().getOrDefault("HOSTNAME", "Unknown");
-		return String.format("%s se namaste", hostname);
+		return String.format("%s ke taraf se namaste", hostname);
 	}
 
 	@GET
