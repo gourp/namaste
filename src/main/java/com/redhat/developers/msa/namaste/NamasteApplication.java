@@ -3,7 +3,7 @@
  * Copyright 2016, Red Hat, Inc. and/or its affiliates, and individual
  * contributors by the @authors tag. See the copyright.txt in the
  * distribution for a full listing of individual contributors.
- *
+ * <p/>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,15 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.redhat.developer.msa.namaste;
+package com.redhat.developers.msa.namaste;
 
-import feign.RequestLine;
+import io.dropwizard.Application;
+import io.dropwizard.Configuration;
+import io.dropwizard.setup.Environment;
 
-import java.util.List;
+public class NamasteApplication extends Application<Configuration> {
 
-public interface ChainedGreeting {
+	public static void main(String[] args) throws Exception {
+		if (args.length == 0) {
+			new NamasteApplication().run("server");
+		}
+		new NamasteApplication().run(args);
+		System.out.println("Service running at 0.0.0.0:8080");
+	}
 
-	@RequestLine("GET /")
-	public List<String> greetings();
+	@Override
+	public void run(Configuration configuration, Environment environment) throws Exception {
+		environment.jersey().register(new NamasteResource());
+	}
 
 }
