@@ -16,6 +16,8 @@
  */
 package com.redhat.developers.msa.namaste;
 
+import com.netflix.hystrix.contrib.metrics.eventstream.HystrixMetricsStreamServlet;
+
 import io.dropwizard.Application;
 import io.dropwizard.Configuration;
 import io.dropwizard.setup.Environment;
@@ -32,7 +34,10 @@ public class NamasteApplication extends Application<Configuration> {
 
 	@Override
 	public void run(Configuration configuration, Environment environment) throws Exception {
+	    //Register Namaste REST service
 		environment.jersey().register(new NamasteResource());
+		//Register HystrixMetricsStreamServlet
+		environment.getApplicationContext().addServlet(HystrixMetricsStreamServlet.class, "/hystrix.stream");
 	}
 
 }
