@@ -20,9 +20,9 @@ import feign.RequestLine;
 
 import java.util.List;
 
-public interface ChainedGreeting {
+public interface OlaService {
 
-	@RequestLine("GET /")
-	public List<String> greetings();
+	@RequestLine("GET /api/ola-chaining")
+	public List<String> ola();
 
 }

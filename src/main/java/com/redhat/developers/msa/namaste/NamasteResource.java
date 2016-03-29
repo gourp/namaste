@@ -26,9 +26,12 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 
-import com.netflix.hystrix.HystrixCommandProperties;
+import com.netflix.config.ConfigurationManager;
 
+import feign.Logger;
+import feign.Logger.Level;
 import feign.hystrix.HystrixFeign;
+import feign.jackson.JacksonDecoder;
 
 @Path("/api")
 public class NamasteResource {
@@ -40,13 +43,13 @@ public class NamasteResource {
     /**
      * The next REST endpoint URL of the service chain to be called.
      */
-    private static final String NEXT_ENDPOINT_URL = "http://ola:8080/api/ola-chaining";
+    private static final String NEXT_ENDPOINT_URL = "http://ola:8080/";
 
     /**
      * Setting Hystrix timeout for the chain in 1s (we have 4 more chained service calls).
      */
     static {
-        HystrixCommandProperties.Setter().withExecutionTimeoutInMilliseconds(1000);
+        ConfigurationManager.getConfigInstance().setProperty("hystrix.command.default.execution.isolation.thread.timeoutInMilliseconds", 1000);
     }
 
     @GET
@@ -65,7 +68,7 @@ public class NamasteResource {
         response.setHeader("Access-Control-Allow-Origin", "*");
         List<String> greetings = new ArrayList<>();
         greetings.add(namaste());
-        greetings.addAll(createFeign().greetings());
+        greetings.addAll(getNextService().ola());
         return greetings;
     }
 
@@ -75,9 +78,12 @@ public class NamasteResource {
      *
      * @return The feign pointing to the service URL and with Hystrix fallback.
      */
-    private ChainedGreeting createFeign() {
-        return HystrixFeign.builder().target(ChainedGreeting.class, NEXT_ENDPOINT_URL,
-            () -> Collections.singletonList("Ola response (fallback)"));
+    private OlaService getNextService() {
+        return HystrixFeign.builder()
+            .logger(new Logger.ErrorLogger()).logLevel(Level.BASIC)
+            .decoder(new JacksonDecoder())
+            .target(OlaService.class, NEXT_ENDPOINT_URL,
+                () -> Collections.singletonList("Ola response (fallback)"));
     }
 
 }
