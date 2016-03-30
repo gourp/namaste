@@ -23,6 +23,6 @@ import java.util.List;
 public interface OlaService {
 
 	@RequestLine("GET /api/ola-chaining")
-	public List<String> ola();
+	public List<String> olaChaining();
 
 }

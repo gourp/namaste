@@ -26,8 +26,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 
-import com.netflix.config.ConfigurationManager;
-
 import feign.Logger;
 import feign.Logger.Level;
 import feign.hystrix.HystrixFeign;
@@ -39,18 +37,6 @@ public class NamasteResource {
     // one way to get HttpServletResponse
     @Context
     private HttpServletResponse response;
-
-    /**
-     * The next REST endpoint URL of the service chain to be called.
-     */
-    private static final String NEXT_ENDPOINT_URL = "http://ola:8080/";
-
-    /**
-     * Setting Hystrix timeout for the chain in 1s (we have 4 more chained service calls).
-     */
-    static {
-        ConfigurationManager.getConfigInstance().setProperty("hystrix.command.default.execution.isolation.thread.timeoutInMilliseconds", 1000);
-    }
 
     @GET
     @Path("/namaste")
@@ -68,7 +54,7 @@ public class NamasteResource {
         response.setHeader("Access-Control-Allow-Origin", "*");
         List<String> greetings = new ArrayList<>();
         greetings.add(namaste());
-        greetings.addAll(getNextService().ola());
+        greetings.addAll(getNextService().olaChaining());
         return greetings;
     }
 
@@ -82,7 +68,7 @@ public class NamasteResource {
         return HystrixFeign.builder()
             .logger(new Logger.ErrorLogger()).logLevel(Level.BASIC)
             .decoder(new JacksonDecoder())
-            .target(OlaService.class, NEXT_ENDPOINT_URL,
+            .target(OlaService.class, "http://ola:8080/",
                 () -> Collections.singletonList("Ola response (fallback)"));
     }
 
