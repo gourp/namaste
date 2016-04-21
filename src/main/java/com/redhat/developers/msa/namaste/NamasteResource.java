@@ -26,8 +26,21 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+
+import com.github.kristofa.brave.Brave;
+import com.github.kristofa.brave.EmptySpanCollectorMetricsHandler;
+import com.github.kristofa.brave.ServerSpan;
+import com.github.kristofa.brave.http.DefaultSpanNameProvider;
+import com.github.kristofa.brave.http.HttpSpanCollector;
+import com.github.kristofa.brave.http.StringServiceNameProvider;
+import com.github.kristofa.brave.httpclient.BraveHttpRequestInterceptor;
+import com.github.kristofa.brave.httpclient.BraveHttpResponseInterceptor;
+
 import feign.Logger;
 import feign.Logger.Level;
+import feign.httpclient.ApacheHttpClient;
 import feign.hystrix.HystrixFeign;
 import feign.jackson.JacksonDecoder;
 
@@ -54,8 +67,14 @@ public class NamasteResource {
         response.setHeader("Access-Control-Allow-Origin", "*");
         List<String> greetings = new ArrayList<>();
         greetings.add(namaste());
-        greetings.addAll(getNextService().olaChaining());
+        greetings.addAll(getNextService().ola());
         return greetings;
+    }
+
+    @GET
+    @Path("/health")
+    public String health() {
+        return "I'm ok";
     }
 
     /**
@@ -65,11 +84,26 @@ public class NamasteResource {
      * @return The feign pointing to the service URL and with Hystrix fallback.
      */
     private OlaService getNextService() {
+        final String serviceName = "ola";
+        final Brave brave = new Brave.Builder("namaste")
+            .spanCollector(HttpSpanCollector.create("http://zipkin-query:9411", new EmptySpanCollectorMetricsHandler()))
+            .build();
+        // This stores the Original/Parent ServerSpan from ZiPkin.
+        final ServerSpan serverSpan = brave.serverSpanThreadBinder().getCurrentServerSpan();
+        final CloseableHttpClient httpclient =
+            HttpClients.custom()
+                .addInterceptorFirst(new BraveHttpRequestInterceptor(brave.clientRequestInterceptor(), new StringServiceNameProvider(serviceName), new DefaultSpanNameProvider()))
+                .addInterceptorFirst(new BraveHttpResponseInterceptor(brave.clientResponseInterceptor()))
+                .build();
+        String url = String.format("http://%s:8080/", serviceName);
         return HystrixFeign.builder()
+            // Use apache HttpClient which contains the ZipKin Interceptors
+            .client(new ApacheHttpClient(httpclient))
+            // Bind Zipkin Server Span to Feign Thread
+            .requestInterceptor((t) -> brave.serverSpanThreadBinder().setCurrentSpan(serverSpan))
             .logger(new Logger.ErrorLogger()).logLevel(Level.BASIC)
             .decoder(new JacksonDecoder())
-            .target(OlaService.class, "http://ola:8080/",
-                () -> Collections.singletonList("Ola response (fallback)"));
+            .target(OlaService.class, url, () -> Collections.singletonList("Ola response (fallback)"));
     }
 
 }

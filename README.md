@@ -5,13 +5,9 @@ Build and Deploy namaste
 --------------------
 
 1. Open a command prompt and navigate to the root directory of this microservice.
-2. Build the executable jar file:
+2. Type this command to build and execute the service:
 
-        mvn clean package
-
-3. Execute the jar file:
-
-        java -jar target/namaste.jar
+        mvn clean compile exec:java
 
 Access the application
 ----------------------
