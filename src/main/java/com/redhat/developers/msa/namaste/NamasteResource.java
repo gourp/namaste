@@ -20,11 +20,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
 
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -43,19 +41,17 @@ import feign.Logger.Level;
 import feign.httpclient.ApacheHttpClient;
 import feign.hystrix.HystrixFeign;
 import feign.jackson.JacksonDecoder;
+import io.swagger.annotations.ApiOperation;
 
-@Path("/api")
+@Path("/")
 public class NamasteResource {
 
-    // one way to get HttpServletResponse
-    @Context
-    private HttpServletResponse response;
 
     @GET
     @Path("/namaste")
     @Produces("text/plain")
+    @ApiOperation("Returns the greeting in Indian")
     public String namaste() {
-        response.setHeader("Access-Control-Allow-Origin", "*");
         String hostname = System.getenv().getOrDefault("HOSTNAME", "Unknown");
         return String.format("%s ke taraf se namaste", hostname);
     }
@@ -63,8 +59,8 @@ public class NamasteResource {
     @GET
     @Path("/namaste-chaining")
     @Produces("application/json")
+    @ApiOperation("Returns the greeting plus the next service in the chain")
     public List<String> namasteChaining() {
-        response.setHeader("Access-Control-Allow-Origin", "*");
         List<String> greetings = new ArrayList<>();
         greetings.add(namaste());
         greetings.addAll(getNextService().ola());
@@ -73,6 +69,8 @@ public class NamasteResource {
 
     @GET
     @Path("/health")
+    @Produces("text/plain")
+    @ApiOperation("Used to verify the health of the service")
     public String health() {
         return "I'm ok";
     }

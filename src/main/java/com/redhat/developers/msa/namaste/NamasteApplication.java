@@ -20,8 +20,12 @@ import java.util.EnumSet;
 
 import javax.servlet.DispatcherType;
 import javax.servlet.Filter;
+import javax.servlet.FilterRegistration;
 import javax.servlet.FilterRegistration.Dynamic;
 
+import org.eclipse.jetty.servlets.CrossOriginFilter;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.github.kristofa.brave.Brave;
 import com.github.kristofa.brave.EmptySpanCollectorMetricsHandler;
 import com.github.kristofa.brave.http.DefaultSpanNameProvider;
@@ -30,10 +34,13 @@ import com.github.kristofa.brave.servlet.BraveServletFilter;
 import com.netflix.hystrix.contrib.metrics.eventstream.HystrixMetricsStreamServlet;
 
 import io.dropwizard.Application;
-import io.dropwizard.Configuration;
+import io.dropwizard.assets.AssetsBundle;
+import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import io.swagger.jaxrs.config.BeanConfig;
+import io.swagger.jaxrs.listing.ApiListingResource;
 
-public class NamasteApplication extends Application<Configuration> {
+public class NamasteApplication extends Application<NamasteConfiguration> {
 
     public static void main(String[] args) throws Exception {
         if (args.length == 0) {
@@ -44,9 +51,19 @@ public class NamasteApplication extends Application<Configuration> {
     }
 
     @Override
-    public void run(Configuration configuration, Environment environment) throws Exception {
+    public void initialize(Bootstrap<NamasteConfiguration> bootstrap) {
+        bootstrap.addBundle(new AssetsBundle("/assets/", "/"));
+    }
+
+    @Override
+    public void run(NamasteConfiguration configuration, Environment environment) throws Exception {
         // Register Namaste REST service
         environment.jersey().register(new NamasteResource());
+
+        // Enable CORS filter
+        FilterRegistration.Dynamic filter = environment.servlets().addFilter("CORSFilter", CrossOriginFilter.class);
+        filter.addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), false, environment.getApplicationContext().getContextPath() + "*");
+
         // Register HystrixMetricsStreamServlet
         environment.getApplicationContext().addServlet(HystrixMetricsStreamServlet.class, "/hystrix.stream");
 
@@ -58,6 +75,22 @@ public class NamasteApplication extends Application<Configuration> {
         Dynamic filterRegistration = environment.servlets().addFilter("BraveServletFilter", braveFilter);
         // Explicit mapping to avoid trace on readiness probe
         filterRegistration.addMappingForUrlPatterns(EnumSet.allOf(DispatcherType.class), false, "/api/namaste", "/api/namaste-chaining");
+
+        // Configure Swagger
+        environment.jersey().register(new ApiListingResource());
+        environment.getObjectMapper().setSerializationInclusion(JsonInclude.Include.NON_NULL);
+        BeanConfig beanConfig = new BeanConfig();
+        beanConfig.setVersion("1.0.0");
+        beanConfig.setSchemes(new String[] { "http" });
+        beanConfig.setTitle("Namaste microservices REST API");
+        beanConfig.setDescription("Operations that can be invoked in the namaste microservices");
+        beanConfig.setResourcePackage("com.redhat.developers.msa.namaste");
+        beanConfig.setLicense("Apache 2.0");
+        beanConfig.setLicenseUrl("http://www.apache.org/licenses/LICENSE-2.0.html");
+        beanConfig.setContact("developer@redhat.com");
+        beanConfig.setBasePath("/api");
+        beanConfig.setPrettyPrint(true);
+        beanConfig.setScan(true);
     }
 
 }
