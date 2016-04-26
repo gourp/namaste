@@ -35,6 +35,7 @@ import com.netflix.hystrix.contrib.metrics.eventstream.HystrixMetricsStreamServl
 
 import io.dropwizard.Application;
 import io.dropwizard.assets.AssetsBundle;
+import io.dropwizard.bundles.webjars.WebJarBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.swagger.jaxrs.config.BeanConfig;
@@ -53,6 +54,7 @@ public class NamasteApplication extends Application<NamasteConfiguration> {
     @Override
     public void initialize(Bootstrap<NamasteConfiguration> bootstrap) {
         bootstrap.addBundle(new AssetsBundle("/assets/", "/"));
+        bootstrap.addBundle(new WebJarBundle());
     }
 
     @Override
