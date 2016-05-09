@@ -6,4 +6,4 @@ ENV AB_JOLOKIA_HTTPS true
 
 EXPOSE 8080
 
-ADD target/namaste.jar /app
+ADD target/namaste.jar /app/
