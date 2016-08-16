@@ -71,7 +71,8 @@ public class NamasteApplication extends Application<NamasteConfiguration> {
 
         // Register BraveServletFilter
         Brave brave = new Brave.Builder("namaste")
-            .spanCollector(HttpSpanCollector.create("http://zipkin-query:9411", new EmptySpanCollectorMetricsHandler()))
+            .spanCollector(HttpSpanCollector.create(System.getenv("ZIPKIN_SERVER_URL"),
+            		new EmptySpanCollectorMetricsHandler()))
             .build();
         Filter braveFilter = new BraveServletFilter(brave.serverRequestInterceptor(), brave.serverResponseInterceptor(), new DefaultSpanNameProvider());
         Dynamic filterRegistration = environment.servlets().addFilter("BraveServletFilter", braveFilter);

@@ -32,7 +32,6 @@ import com.github.kristofa.brave.EmptySpanCollectorMetricsHandler;
 import com.github.kristofa.brave.ServerSpan;
 import com.github.kristofa.brave.http.DefaultSpanNameProvider;
 import com.github.kristofa.brave.http.HttpSpanCollector;
-import com.github.kristofa.brave.http.StringServiceNameProvider;
 import com.github.kristofa.brave.httpclient.BraveHttpRequestInterceptor;
 import com.github.kristofa.brave.httpclient.BraveHttpResponseInterceptor;
 
@@ -84,13 +83,14 @@ public class NamasteResource {
     private OlaService getNextService() {
         final String serviceName = "ola";
         final Brave brave = new Brave.Builder("namaste")
-            .spanCollector(HttpSpanCollector.create("http://zipkin-query:9411", new EmptySpanCollectorMetricsHandler()))
+            .spanCollector(HttpSpanCollector.create(System.getenv("ZIPKIN_SERVER_URL"),
+            		new EmptySpanCollectorMetricsHandler()))
             .build();
         // This stores the Original/Parent ServerSpan from ZiPkin.
         final ServerSpan serverSpan = brave.serverSpanThreadBinder().getCurrentServerSpan();
         final CloseableHttpClient httpclient =
             HttpClients.custom()
-                .addInterceptorFirst(new BraveHttpRequestInterceptor(brave.clientRequestInterceptor(), new StringServiceNameProvider(serviceName), new DefaultSpanNameProvider()))
+                .addInterceptorFirst(new BraveHttpRequestInterceptor(brave.clientRequestInterceptor(), new DefaultSpanNameProvider()))
                 .addInterceptorFirst(new BraveHttpResponseInterceptor(brave.clientResponseInterceptor()))
                 .build();
         String url = String.format("http://%s:8080/", serviceName);
